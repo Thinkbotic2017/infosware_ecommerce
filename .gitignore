@@ -1,0 +1,49 @@
+node_modules
+.env
+server/.env
+server/serviceAcc.json
+server/serviceAccountKey.json
+server/config/serviceAccountKey.json
+frontend/node_modules
+server/node_modules
+frontend/.env.local
+server/uploads/local-catalog-*
+frontend/public/ecommerce-1c530-firebase-adminsdk-fbsvc-50732b3632.json
+
+frontend/.next
+
+# Private credentials
+server/config/serviceAccountKey.json
+frontend/public/ecommerce-1c530-firebase-adminsdk-fbsvc-50732b3632.json
+*.pem
+
+@'
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Next.js generated files
+.next/
+**/.next/
+out/
+**/out/
+
+# Environment variables and secrets
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Google Cloud and Firebase private credentials
+server/config/serviceAccountKey.json
+frontend/public/*firebase-adminsdk*.json
+*serviceAccountKey*.json
+
+# Build and debug output
+dist/
+**/dist/
+coverage/
+npm-debug.log*
+'@ | Add-Content .gitignore
