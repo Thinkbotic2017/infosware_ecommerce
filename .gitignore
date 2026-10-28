@@ -1,0 +1,18 @@
+node_modules
+.env
+server/.env
+server/serviceAcc.json
+server/serviceAccountKey.json
+server/config/serviceAccountKey.json
+frontend/node_modules
+server/node_modules
+frontend/.env.local
+server/uploads/local-catalog-*
+frontend/public/ecommerce-1c530-firebase-adminsdk-fbsvc-50732b3632.json
+
+frontend/.next
+
+# Private credentials
+server/config/serviceAccountKey.json
+frontend/public/ecommerce-1c530-firebase-adminsdk-fbsvc-50732b3632.json
+*.pem

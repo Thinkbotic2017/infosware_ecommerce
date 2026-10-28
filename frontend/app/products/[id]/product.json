@@ -1,0 +1,167 @@
+[
+    {
+  "name": "Smart Watch Elite",
+  "Brand": "Apple",
+  "img": "/product-1.jpg",
+  "images": [
+    {
+      "imageColor": "Black",
+      "imageSet": ["/watch1.jpg", "/watch2.jpg"]
+    }
+  ],
+  "descriptions": "Advanced smartwatch with fitness tracking",
+  "category": "Electronics",
+  "subCategory": "Wearables",
+  "price": 2999,
+  "oldPrice": 3999,
+  "discount": 25,
+  "gst": 18,
+  "stock": 15,
+  "stockStatus": "in-stock",
+  "rating": 4.5,
+  "ratingCount": 120,
+  "ratingTotal": 540,
+  "productDescription": "Track fitness, calls, and notifications.",
+  "specifications": [
+    { "key": "Display", "value": "AMOLED" },
+    { "key": "Battery", "value": "2 Days" }
+  ],
+  "warranty": [
+    { "key": "Warranty", "value": "1 Year" }
+  ],
+  "offers": [
+    { "key": "Bank Offer", "value": "10% cashback" }
+  ],
+  "quesAns": [
+  {
+    "userId": "64f1a1a1a1a1a1a1a1a1a1b1",
+    "key": "Does it support Bluetooth calling?",
+    "value": "Yes, it supports Bluetooth calling."
+  },
+  {
+    "userId": "64f1a1a1a1a1a1a1a1a1a1b2",
+    "key": "Is it waterproof?",
+    "value": "Yes, it has IP68 water resistance."
+  },
+  {
+    "userId": "64f1a1a1a1a1a1a1a1a1a1b3",
+    "key": "Battery backup?",
+    "value": "Battery lasts around 2 days on normal usage."
+  }
+],
+"reviews": [
+  {
+    "userId": "64f1a1a1a1a1a1a1a1a1a1a1",
+    "rating": 5,
+    "key": "Excellent Product",
+    "value": "The smartwatch is amazing. Battery lasts long and display is very sharp."
+  },
+  {
+    "userId": "64f1a1a1a1a1a1a1a1a1a1a2",
+    "rating": 4,
+    "key": "Good but pricey",
+    "value": "Works perfectly but a bit expensive compared to competitors."
+  },
+  {
+    "userId": "64f1a1a1a1a1a1a1a1a1a1a3",
+    "rating": 3,
+    "key": "Average",
+    "value": "Decent features but expected better build quality."
+  }
+],
+"otherinfo": [
+  {
+    "key": "Country of Origin",
+    "value": "India"
+  },
+  {
+    "key": "Manufacturer",
+    "value": "Apple Pvt Ltd"
+  },
+  {
+    "key": "Package Includes",
+    "value": "1 Smartwatch, Charger, User Manual"
+  },
+  {
+    "key": "Model Number",
+    "value": "SW-2025-X"
+  }
+]
+},
+{
+  "name": "Pro Noise Cancelling Headphones",
+  "Brand": "Sony",
+  "img": "/product-2.jpg",
+  "images": [
+    {
+      "imageColor": "Beige",
+      "imageSet": ["/head1.jpg", "/head2.jpg"]
+    }
+  ],
+  "descriptions": "High-quality sound with noise cancellation",
+  "category": "Audio",
+  "subCategory": "Headphones",
+  "price": 1299,
+  "oldPrice": 1999,
+  "discount": 35,
+  "gst": 18,
+  "stock": 8,
+  "stockStatus": "few-left",
+  "rating": 4,
+  "ratingCount": 80,
+  "ratingTotal": 320,
+  "productDescription": "Enjoy music without disturbance.",
+  "specifications": [
+    { "key": "Battery", "value": "20 Hours" }
+  ]
+},
+{
+  "name": "Urban Sneakers X1",
+  "Brand": "Nike",
+  "img": "/product-3.jpg",
+  "images": [
+    {
+      "imageColor": "Red",
+      "imageSet": ["/shoe1.jpg", "/shoe2.jpg"]
+    }
+  ],
+  "descriptions": "Comfortable running shoes",
+  "category": "Fashion",
+  "subCategory": "Shoes",
+  "price": 1999,
+  "oldPrice": 2499,
+  "discount": 20,
+  "gst": 12,
+  "stock": 0,
+  "stockStatus": "out-of-stock",
+  "rating": 3,
+  "ratingCount": 45,
+  "ratingTotal": 135,
+  "productDescription": "Perfect for daily use."
+},
+{
+  "name": "Wireless Earbuds Lite",
+  "Brand": "Boat",
+  "img": "/product-4.jpg",
+  "images": [
+    {
+      "imageColor": "White",
+      "imageSet": ["/ear1.jpg"]
+    }
+  ],
+  "descriptions": "Compact and lightweight earbuds",
+  "category": "Audio",
+  "subCategory": "Earbuds",
+  "price": 899,
+  "oldPrice": 1299,
+  "discount": 30,
+  "gst": 18,
+  "stock": 25,
+  "stockStatus": "in-stock",
+  "rating": 4,
+  "ratingCount": 60,
+  "ratingTotal": 240
+}
+
+    
+]
