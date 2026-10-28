@@ -1,0 +1,1594 @@
+﻿
+===== controllers\admin-productController.js =====
+
+const ProductPage = require("../models/productPage-model");
+const ProductInquiry = require("../models/ProductInquiry-model");
+
+const sharp =
+require("sharp");
+
+const fs =
+require("fs");
+
+
+// Add this at the top of your file
+function safeParse(str) {
+    try {
+        return JSON.parse(str);
+    } catch {
+        return [];
+    }
+}
+
+
+const getAllProductDetails = async (req, res, next) => {
+    try {
+        const data = await ProductDetails.find({});
+        if (!data || data.length === 0) {
+            return res.status(404).json({ msg: "No product details found" });
+        }
+        return res.status(200).json(data);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getProductInquiry = async (req, res, next) => {
+    try {
+        const data = await ProductInquiry.find({});
+        // Always return 200, even if no data
+        return res.status(200).json(data);
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getProductInquiryCount = async (req, res, next) => {
+    try {
+        const count = await ProductInquiry.countDocuments();
+        return res.status(200).json({ count });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const deleteProductInquiry = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const result = await ProductInquiry.findByIdAndDelete(id);
+        if (!result) {
+            return res.status(404).json({ msg: "Inquiry not found" });
+        }
+        return res.status(200).json({ msg: "Inquiry deleted successfully" });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getProductDetailsById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const data = await ProductDetails.findById(id);
+        if (!data) {
+            return res.status(404).json({ msg: "Product details not found" });
+        }
+        return res.status(200).json(data);
+    } catch (error) {
+        return res.status(400).json({ msg: "Error fetching product details", error: error.message });
+    }
+};
+
+const createProductDetails = async (req, res, next) => {
+    try {
+        const newData = new ProductDetails(req.body);
+        await newData.save();
+        return res.status(201).json({ msg: "Product details created successfully", data: newData });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const updateProductDetailsById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const updatedData = await ProductDetails.findByIdAndUpdate(id, req.body, { new: true, runValidators: true });
+        if (!updatedData) {
+            return res.status(404).json({ msg: "Product details not found" });
+        }
+        return res.status(200).json({ msg: "Product details updated successfully", data: updatedData });
+    } catch (error) {
+        return res.status(400).json({ msg: "Error updating product details", error: error.message });
+    }
+};
+
+const deleteProductDetailsById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const result = await ProductDetails.findByIdAndDelete(id);
+        if (!result) {
+            return res.status(404).json({ msg: "Product details not found" });
+        }
+        return res.status(200).json({ msg: "Product details deleted successfully" });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// ProductPage functions
+const getAllProductPages = async (req, res, next) => {
+    try {
+            const page= Number(req.query.page)|| 1;
+const limit= Number(req.query.limit) || 5;
+const skip=(page-1)*limit;
+        const data = await ProductPage.find({}).skip(skip)
+      .limit(limit).sort({ createdAt: -1 });
+ const totalDocuments =await ProductPage.countDocuments();
+ const totalPages = Math.ceil( totalDocuments / limit );
+        if (!data || data.length === 0) {
+            return res.status(404).json({ msg: "No product pages found" });
+        }
+        return res.status(200).json({data,totalPages, currentPage: page, totalDocuments });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const getProductPageById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const data = await ProductPage.findById(id);
+        if (!data) {
+            return res.status(404).json({ msg: "Product page not found" });
+        }
+        return res.status(200).json(data);
+    } catch (error) {
+        return res.status(400).json({ msg: "Error fetching product page", error: error.message });
+    }
+};
+
+
+const createProductPage = async (req, res, next) => {
+  try {
+
+    // â”€â”€ TRIM STRINGS 
+    const name              = req.body.name?.trim();
+    const Brand             = req.body.Brand?.trim();
+    const descriptions      = req.body.descriptions?.trim();
+    const category          = req.body.category?.trim();
+    const subCategory       = req.body.subCategory?.trim();
+    const metaTitle         = req.body.metaTitle?.trim();
+    const metaDescription   = req.body.metaDescription?.trim();
+    const metaKeywords      = req.body.metaKeywords?.trim();
+
+    // â”€â”€ SAFE NUMBER CONVERSION 
+    // Use || 0 so missing / empty-string values become 0, never NaN
+    const price    = req.body.price    !== undefined && req.body.price    !== "" ? Number(req.body.price)    : undefined;
+    const oldPrice = req.body.oldPrice !== undefined && req.body.oldPrice !== "" ? Number(req.body.oldPrice) : 0;
+    const discount = req.body.discount !== undefined && req.body.discount !== "" ? Number(req.body.discount) : 0;
+    const gst      = req.body.gst      !== undefined && req.body.gst      !== "" ? Number(req.body.gst)      : 0;
+    const stock    = req.body.stock    !== undefined && req.body.stock    !== "" ? Number(req.body.stock)    : 50;
+    // rating is set by users via reviews â€” never trust a value from the admin form
+    // default to 0; schema has default:0 so we can simply omit it too
+    const rating   = 0;
+
+    // â”€â”€ REQUIRED VALIDATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    if (!name || !category || price === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, category and price are required",
+      });
+    }
+
+    // NaN guard â€” catches any edge-case bad numeric input
+    if (isNaN(price) || isNaN(oldPrice) || isNaN(discount) || isNaN(gst) || isNaN(stock)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid numeric value in price, oldPrix`xce, discount, GST, or stock",
+      });
+    }
+
+    if (name.length < 2) {
+      return res.status(400).json({ success: false, message: "Product name too short" });
+    }
+    if (price <= 0) {
+      return res.status(400).json({ success: false, message: "Selling price must be greater than zero" });
+    }
+    if (oldPrice < 0) {
+      return res.status(400).json({ success: false, message: "Old price cannot be negative" });
+    }
+    if (discount < 0 || discount > 100) {
+      return res.status(400).json({ success: false, message: "Discount must be between 0 and 100" });
+    }
+    if (gst < 0 || gst > 100) {
+      return res.status(400).json({ success: false, message: "GST must be between 0 and 100" });
+    }
+    if (stock < 0) {
+      return res.status(400).json({ success: false, message: "Stock cannot be negative" });
+    }
+
+    // â”€â”€ MAIN IMAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// MAIN IMAGE REQUIRED
+
+if (
+  !req.files?.img?.[0] &&
+  !req.body.imgPath &&
+  !req.body.existingImg
+) {
+  return res.status(400).json({
+    success: false,
+    message: "Main image is required",
+  });
+}
+
+// MAIN IMAGE VALIDATION
+
+if (req.files?.img?.[0]) {
+
+  const file = req.files.img[0];
+
+  const allowedTypes = [
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+  ];
+
+  if (!allowedTypes.includes(file.mimetype)) {
+
+    fs.unlinkSync(file.path);
+
+    return res.status(400).json({
+      success: false,
+      message: "Only JPG, PNG and WEBP allowed",
+    });
+  }
+
+  const maxSize = 2 * 1024 * 1024;
+
+  if (file.size > maxSize) {
+
+    fs.unlinkSync(file.path);
+
+    return res.status(400).json({
+      success: false,
+      message: "Image size must be under 2MB",
+    });
+  }
+
+  const metadata = await sharp(file.path).metadata();
+
+  const MIN_WIDTH = 500;
+  const MAX_WIDTH = 800;
+
+  const MIN_HEIGHT = 500;
+  const MAX_HEIGHT = 800;
+
+  if (
+    metadata.width < MIN_WIDTH ||
+    metadata.width > MAX_WIDTH
+  ) {
+
+    fs.unlinkSync(file.path);
+
+    return res.status(400).json({
+      success: false,
+      message: `Image width must be between ${MIN_WIDTH}px and ${MAX_WIDTH}px`,
+    });
+  }
+
+  if (
+    metadata.height < MIN_HEIGHT ||
+    metadata.height > MAX_HEIGHT
+  ) {
+
+    fs.unlinkSync(file.path);
+
+    return res.status(400).json({
+      success: false,
+      message: `Image height must be between ${MIN_HEIGHT}px and ${MAX_HEIGHT}px`,
+    });
+  }
+}
+    
+
+    // â”€â”€ PREPARE DATA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    const newData = {
+      name,
+      Brand,
+      descriptions,
+      category,
+      subCategory,
+      price,
+      oldPrice,
+      discount,
+      gst,
+      stock,
+      rating,                          // always 0 from admin; updated by user reviews
+      metaTitle,
+      metaDescription,
+      metaKeywords,
+      priceAlert:         req.body.priceAlert || "",
+      stockStatus:        stock === 0 ? "out-of-stock" : stock < 5 ? "few-left" : "in-stock",
+      catalogStatus:      "published",
+      isPlaceholder:      false,
+      priceVerified:      true,
+      productDescription: req.body.productDescription || "",
+      specifications:     JSON.parse(req.body.specifications || "[]"),
+      warranty:           JSON.parse(req.body.warranty      || "[]"),
+      otherinfo:          JSON.parse(req.body.otherinfo      || "[]"),
+      offers:             JSON.parse(req.body.offers         || "[]"),
+      otherinfoText:      req.body.otherinfoText || "",
+      // reviews and quesAns are managed by users â€” never set from admin form
+      reviews:  [],
+      quesAns:  [],
+    };
+
+    // â”€â”€ MAIN IMAGE PATH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    if (req.files?.img?.[0]) {
+      newData.img = `uploads/${req.files.img[0].filename}`;
+    } else if (
+req.body.imgPath
+) {
+
+newData.img =
+req.body.imgPath;
+
+}
+
+else if (
+req.body.existingImg
+) {
+
+newData.img =
+req.body.existingImg;
+
+}
+
+
+    // â”€â”€ COLOR IMAGES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    let images = [];
+
+    if (req.body.colorNames && req.files?.colorImages) {
+    
+// COLOR IMAGE VALIDATION
+
+for (
+const file of req.files.colorImages
+) {
+
+  // FILE TYPE
+
+  const allowedTypes = [
+
+    "image/jpeg",
+
+    "image/jpg",
+
+    "image/png",
+
+    "image/webp",
+  ];
+
+  if (
+
+!allowedTypes.includes(
+file.mimetype
+)
+
+  ) {
+
+    fs.unlinkSync(
+file.path
+    );
+
+    return res.status(400).json({
+
+      success: false,
+
+      message:
+"Only JPG, PNG and WEBP allowed",
+    });
+  }
+
+  // FILE SIZE
+
+  const maxSize =
+5 * 1024 * 1024;
+
+  if (
+file.size > maxSize
+  ) {
+
+    fs.unlinkSync(
+file.path
+    );
+
+    return res.status(400).json({
+
+      success: false,
+
+      message:
+"Color image size must be under 5MB",
+    });
+  }
+
+  // DIMENSIONS
+
+  const metadata =
+
+await sharp(file.path)
+.metadata();
+
+  if (
+metadata.width < 500
+  ) {
+
+    fs.unlinkSync(
+file.path
+    );
+
+    return res.status(400).json({
+
+      success: false,
+
+      message:
+"Color image width must be at least 500px",
+    });
+  }
+
+  if (
+metadata.height < 500
+  ) {
+
+    fs.unlinkSync(
+file.path
+    );
+
+    return res.status(400).json({
+
+      success: false,
+
+      message:
+"Color image height must be at least 500px",
+    });
+  }
+}
+
+
+      const colorNames = Array.isArray(req.body.colorNames)
+        ? req.body.colorNames
+        : [req.body.colorNames];
+
+      const colorImages = req.files.colorImages;
+
+      const colorImageCounts = req.body.colorImageCounts
+        ? JSON.parse(req.body.colorImageCounts)
+        : Array(colorNames.length).fill(1);
+
+      let existingImagesMap = {};
+      if (req.body.existingColorImages) {
+        const flat = Array.isArray(req.body.existingColorImages)
+          ? req.body.existingColorImages
+          : [req.body.existingColorImages];
+
+        flat.forEach((item) => {
+          const obj = typeof item === "string" ? JSON.parse(item) : item;
+          if (!obj.color || !obj.image) return;
+          if (!existingImagesMap[obj.color]) existingImagesMap[obj.color] = [];
+          existingImagesMap[obj.color].push(obj.image);
+        });
+      }
+
+      let imgIdx = 0;
+      colorNames.forEach((color, i) => {
+        const count    = Number(colorImageCounts[i]) || 0;
+        const imageSet = [];
+
+        if (existingImagesMap[color]) {
+          imageSet.push(...existingImagesMap[color]);
+        }
+
+        colorImages.slice(imgIdx, imgIdx + count).forEach((file) => {
+          imageSet.push(`uploads/${file.filename}`);
+        });
+
+        imgIdx += count;
+        images.push({ imageColor: color, imageSet });
+      });
+    }
+
+    newData.images = images;
+
+    // â”€â”€ CREATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    const createdData = new ProductPage(newData);
+    await createdData.save();
+
+    return res.status(201).json({
+      success: true,
+      message: "Product page created successfully",
+      data:    createdData,
+    });
+
+  } catch (error) {
+    console.error("Error creating product page:", error);
+
+    if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map((e) => e.message);
+      return res.status(400).json({ success: false, message: errors[0] });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Error creating product page",
+      error:   error.message,
+    });
+  }
+};
+
+
+
+
+const updateProductPageById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        let updateData = {};
+
+        // Copy all simple fields from req.body
+        const allowedFields = [
+            "name", "Brand", "priceAlert", "descriptions", "category", "subCategory",
+            "price", "oldPrice","discount", "gst", "metaTitle", "metaDescription", "metaKeywords",
+            "productDescription", "specifications", "warranty", "quesAns", "otherinfo",
+            "offers", "otherinfoText"
+        ];
+        allowedFields.forEach(field => {
+            if (req.body[field] !== undefined) {
+                // Parse arrays/objects if needed
+                if (["specifications", "warranty", "quesAns", "otherinfo", "offers"].includes(field)) {
+                    updateData[field] = safeParse(req.body[field]);
+                } else {
+                    updateData[field] = req.body[field];
+                }
+            }
+        });
+
+        // Main image
+        if (req.files && req.files.img && req.files.img[0]) {
+
+            updateData.img = `uploads/${req.files.img[0].filename}`;
+        } else if (req.body.imgPath && !req.files?.img) {
+            updateData.img = req.body.imgPath;
+        }
+
+        // Color-wise images (existing logic)
+        let images = [];
+        if (req.body.colorNames && req.files && req.files.colorImages) {
+            const colorNames = Array.isArray(req.body.colorNames)
+                ? req.body.colorNames
+                : [req.body.colorNames];
+            const colorImages = req.files.colorImages;
+
+            let colorImageCounts = req.body.colorImageCounts
+                ? JSON.parse(req.body.colorImageCounts)
+                : Array(colorNames.length).fill(1);
+
+            // Prepare existing images grouped by color
+            let existingImagesMap = {};
+            if (req.body.existingColorImages) {
+                const flat = Array.isArray(req.body.existingColorImages)
+                    ? req.body.existingColorImages
+                    : [req.body.existingColorImages];
+                flat.forEach(item => {
+                    const obj = typeof item === "string" ? JSON.parse(item) : item;
+                    if (!obj.color || !obj.image) return;
+                    if (!existingImagesMap[obj.color]) existingImagesMap[obj.color] = [];
+                    existingImagesMap[obj.color].push(obj.image);
+                });
+            }
+
+            // Group new images by color using colorImageCounts (fixed slicing)
+            let imgIdx = 0;
+            colorNames.forEach((color, i) => {
+                const count = Number(colorImageCounts[i]) || 0;
+                const imageSet = [];
+
+                // Add existing images for this color
+                if (existingImagesMap[color]) {
+                    imageSet.push(...existingImagesMap[color]);
+                }
+
+                // Add new uploaded images for this color (slice instead of loop)
+                const newImagesForColor = colorImages.slice(imgIdx, imgIdx + (count - (existingImagesMap[color]?.length || 0)));
+                newImagesForColor.forEach(file => {
+                    imageSet.push(`uploads/${file.filename}`);
+                });
+                imgIdx += (count - (existingImagesMap[color]?.length || 0));
+
+                images.push({
+                    imageColor: color,
+                    imageSet
+                });
+            });
+        }
+        // If only existing images (no new uploads)
+        else if (req.body.existingColorImages && req.body.colorNames) {
+            const colorNames = Array.isArray(req.body.colorNames)
+                ? req.body.colorNames
+                : [req.body.colorNames];
+            let flat = Array.isArray(req.body.existingColorImages)
+                ? req.body.existingColorImages
+                : [req.body.existingColorImages];
+            images = colorNames.map(color => ({
+                imageColor: color,
+                imageSet: flat
+                    .map(item => typeof item === "string" ? JSON.parse(item) : item)
+                    .filter(obj => obj.color === color && obj.image)
+                    .map(obj => obj.image)
+            }));
+        }
+        // Fallback for JSON payload
+        else if (req.body.images) {
+            if (typeof req.body.images === "string") {
+                try {
+                    images = JSON.parse(req.body.images);
+                } catch {
+                    images = [];
+                }
+            } else if (Array.isArray(req.body.images)) {
+                images = req.body.images;
+            }
+        }
+
+        updateData.images = images;
+
+        // ---- Handle stock status ----
+        if (req.body.stock !== undefined) {
+            updateData.stock = Number(req.body.stock);
+            if (updateData.stock === 0) {
+                updateData.stockStatus = "out-of-stock";
+            } else if (updateData.stock < 5) {
+                updateData.stockStatus = "few-left";
+            } else {
+                updateData.stockStatus = "in-stock";
+            }
+        }
+
+        const productName = String(req.body.name || "").trim();
+        const productCategory = String(req.body.category || "").trim();
+        const productPrice = Number(req.body.price);
+        const hasVerifiedListingData =
+            productName.length > 0 &&
+            !productName.toLowerCase().includes("(details pending)") &&
+            productCategory.length > 0 &&
+            productCategory.toLowerCase() !== "local catalog" &&
+            Number.isFinite(productPrice) &&
+            productPrice > 0 &&
+            req.body.stock !== undefined &&
+            String(req.body.stock).trim() !== "";
+
+        if (hasVerifiedListingData) {
+            updateData.isPlaceholder = false;
+            updateData.placeholderKey = "";
+            updateData.priceVerified = true;
+            updateData.catalogStatus = "published";
+        }
+
+        // ---- Update product ----
+        const updatedData = await ProductPage.findByIdAndUpdate(id, updateData, {
+            new: true,
+            runValidators: true,
+        });
+
+        if (!updatedData) {
+            return res.status(404).json({ msg: "Product page not found" });
+        }
+
+        return res
+            .status(200)
+            .json({ msg: "Product page updated successfully", data: updatedData });
+    } catch (error) {
+        return res
+            .status(400)
+            .json({ msg: "Error updating product page", error: error.message });
+    }
+};
+
+
+const deleteProductPageById = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const result = await ProductPage.findByIdAndDelete(id);
+        if (!result) {
+            return res.status(404).json({ msg: "Product page not found" });
+        }
+        return res.status(200).json({ msg: "Product page deleted successfully" });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// User submits a question (no answer yet)
+const addProductQuestion = async (req, res, next) => {
+    try {
+        const { productId } = req.params;
+        const { question } = req.body;
+        const userId = req.user._id; // from auth middleware
+
+        if (!question) return res.status(400).json({ msg: "Question is required" });
+
+        const product = await ProductPage.findById(productId);
+        if (!product) return res.status(404).json({ msg: "Product not found" });
+
+        product.quesAns.push({ userId, key: question, value: "" });
+        await product.save();
+
+        res.status(201).json({ msg: "Question submitted", quesAns: product.quesAns });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// Admin answers a question
+const answerProductQuestion = async (req, res, next) => {
+    try {
+        const { productId, qaId } = req.params;
+        const { answer } = req.body;
+
+        const product = await ProductPage.findById(productId);
+        if (!product) return res.status(404).json({ msg: "Product not found" });
+
+        const qa = product.quesAns.id(qaId);
+        if (!qa) return res.status(404).json({ msg: "Q&A not found" });
+
+        qa.value = answer;
+        await product.save();
+
+        res.status(200).json({ msg: "Answer added", quesAns: product.quesAns });
+    } catch (error) {
+        next(error);
+    }
+};
+
+// get questions
+
+const getPendingQuestion = async (req, res) => {
+
+  try {
+
+    const products = await ProductPage.find({})
+
+      .select("name category img quesAns");
+
+    const formattedProducts = products
+
+      .map((product) => ({
+
+        ...product._doc,
+
+        quesAns: Array.isArray(product.quesAns)
+
+          ? product.quesAns.filter(
+
+              (qa) =>
+
+                !qa.value ||
+
+                qa.value.trim() === ""
+
+            )
+
+          : []
+
+      }))
+
+      .filter(
+
+        (product) =>
+
+          product.quesAns.length > 0
+
+      );
+
+    return res.status(200).json({
+
+      success: true,
+
+      data: formattedProducts
+
+    });
+
+  } catch (err) {
+
+    console.log(
+
+      "Pending Question Error:",
+
+      err
+
+    );
+
+    return res.status(500).json({
+
+      success: false,
+
+      message: err.message
+
+    });
+
+  }
+
+};
+
+const deleteProductImage = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const imageUrl = req.body.imageUrl || req.query.imageUrl;
+
+        console.log("Delete image called for product:", id, "imageUrl:", imageUrl);
+
+        if (!imageUrl) {
+            return res.status(400).json({ msg: "Image URL is required" });
+        }
+
+        const product = await ProductPage.findById(id);
+        if (!product) {
+            return res.status(404).json({ msg: "Product not found" });
+        }
+
+        // Log for debugging
+        console.log("Product images before:", product.images);
+
+        // Use decodeURIComponent for safety
+        const decodedUrl = decodeURIComponent(imageUrl);
+
+        // Remove image by strict match
+        const newImages = (product.images || []).filter(img => img !== decodedUrl);
+        if (newImages.length === product.images.length) {
+            // Not found
+            return res.status(404).json({ msg: "Image not found in product images" });
+        }
+        product.images = newImages;
+
+        await product.save() ;
+
+        console.log("Product images after:", product.images);
+
+        return res.status(200).json({ msg: "Image deleted", images: product.images });
+    } catch (error) {
+        console.error("Delete image error:", error);
+        return res.status(500).json({ msg: "Error deleting image", error: error.message });
+    }
+};
+
+module.exports = {
+    getAllProductDetails,
+    getProductDetailsById,
+    createProductDetails,
+    updateProductDetailsById,
+    deleteProductDetailsById,
+    getAllProductPages,
+    getProductPageById,
+    createProductPage,
+    updateProductPageById,
+    deleteProductPageById,
+    getProductInquiry,
+    deleteProductInquiry,
+    getProductInquiryCount,
+
+    addProductQuestion,
+    answerProductQuestion,
+getPendingQuestion,
+    deleteProductImage,
+};
+
+===== routes\admin-router.js =====
+
+const express = require("express");
+const adminUserController = require("../controllers/admin-userController");
+const adminController = require("../controllers/admin-Controller");
+const adminNavController = require("../controllers/Admin-navController");
+const authMiddleware = require("../middleware/auth-middleware");
+const adminMiddleware = require("../middleware/admin-middleware");
+const { uploadSingle, uploadMultiple } = require("../middleware/upload-middleware");
+const adminProductController = require("../controllers/admin-productController");
+const { addBanner, deleteBanner, getBanners, updateBanner } = require("../controllers/banner-Controller");
+const { getFooter, createFooter ,deleteFooter, updateFooter} = require("../controllers/footer-Controller");
+
+const router = express.Router();
+
+/*..........................................
+..............Users Routes
+..........................................*/
+
+
+router.route("/users")
+    .get(authMiddleware, adminMiddleware, adminUserController.getAllUsers);
+
+router.route("/users/:id")
+    .get(authMiddleware, adminMiddleware, adminUserController.getUserById);
+
+router.route("/users/update/:id")
+    .put(authMiddleware, adminMiddleware, adminUserController.updateUserById);
+
+router.route("/users/delete/:id")
+    .delete(authMiddleware, adminMiddleware, adminUserController.deleteUserById);
+
+/*..........................................
+..........Landing Page Routes................
+..........................................*/
+router.route("/landingpage/categories")
+    .get(authMiddleware, adminMiddleware, adminController.getAllCategories)
+    .post(authMiddleware, adminMiddleware, uploadSingle, adminController.createCategory);
+
+router.route("/landingpage/category/:id")
+    .get(authMiddleware, adminMiddleware, adminController.findCategoryById)
+    .put(authMiddleware, adminMiddleware, uploadSingle, adminController.updateCategoryById)
+    .delete(authMiddleware, adminMiddleware, adminController.deleteCategoryById);
+
+router.route("/landingpage/banners")
+    .get(authMiddleware, adminMiddleware, adminController.getAllBanners)
+    .post(authMiddleware, adminMiddleware, uploadSingle, adminController.createBanner);
+
+router.route("/landingpage/banner/:id")
+    .get(authMiddleware, adminMiddleware, adminController.findBannerById)
+    .put(authMiddleware, adminMiddleware, uploadSingle, adminController.updateBannerById)
+    .delete(authMiddleware, adminMiddleware, adminController.deleteBannerById);
+
+/*..........................................
+..........TRBanner Routes................
+..........................................*/
+router.route("/landingpage/trbanner")
+    .get(authMiddleware, adminMiddleware, adminController.getAllTRBanner)
+    .post(authMiddleware, adminMiddleware, uploadSingle, adminController.createTRBanner);
+
+router.route("/landingpage/trbanner/:id")
+    .get(authMiddleware, adminMiddleware, adminController.findTRBannerById)
+    .put(authMiddleware, adminMiddleware, uploadSingle, adminController.updateTRBannerById)
+    .delete(authMiddleware, adminMiddleware, adminController.deleteTRBannerById);
+
+/*..........................................
+..........Navbar Routes................
+..........................................*/
+router
+    .route('/navbar')
+    .get(authMiddleware, adminMiddleware, adminNavController.getAllNavbars);
+
+router
+    .route('/navbar/logo')
+    .post(authMiddleware, adminMiddleware, uploadSingle, adminNavController.addLogo);
+
+router
+    .route('/navbar/:id/logo')
+    .put(authMiddleware, adminMiddleware, uploadSingle, adminNavController.updateLogoById)
+    .delete(authMiddleware, adminMiddleware, adminNavController.deleteLogoById);
+
+/*..........................................
+..........Footer Routes................
+..........................................*/
+// router.route("/landingpage/footer")
+//     .get(authMiddleware, adminMiddleware, adminController.getAllFooter)
+//     .post(authMiddleware, adminMiddleware, adminController.createFooter);
+
+// router.route("/landingpage/footer/:id")
+//     .get(authMiddleware, adminMiddleware, adminController.findFooterById)
+//     .put(authMiddleware, adminMiddleware, uploadSingle, adminController.updateFooterById)
+//     .delete(authMiddleware, adminMiddleware, adminController.deleteFooterById);
+
+
+
+router.route("/landingpage/footer").get(getFooter)
+router.route("/landingpage/footer").post(authMiddleware, adminMiddleware,createFooter)
+
+router.route("/landingpage/footer/:id").put(authMiddleware, adminMiddleware,updateFooter)
+router.route("/landingpage/footer/:id").delete(authMiddleware, adminMiddleware,deleteFooter)
+/*..........................................
+..........Carts Routes................
+..........................................*/
+router.route("/carts")
+    .get(authMiddleware, adminMiddleware, adminController.getAllCarts)
+
+router.route("/carts/:id")
+    .get(authMiddleware, adminMiddleware, adminController.getCart)
+    .put(authMiddleware, adminMiddleware, adminController.updateCartById)
+    .delete(authMiddleware, adminMiddleware, adminController.deleteCartById);
+
+/*..........................................
+..........ProductPages Routes................
+..........................................*/
+router.route("/productpage")
+    .get(authMiddleware, adminMiddleware, adminProductController.getAllProductPages)
+    .post(authMiddleware, adminMiddleware, uploadMultiple, adminProductController.createProductPage);
+
+
+
+/*..........................................
+..........ProductDetails Routes................
+..........................................*/
+router.route("/productdetails")
+    .get(authMiddleware, adminMiddleware, adminProductController.getAllProductDetails)
+    .post(authMiddleware, adminMiddleware, adminProductController.createProductDetails);
+
+router.route("/productdetails/:id")
+    .get(authMiddleware, adminMiddleware, adminProductController.getProductDetailsById)
+    .put(authMiddleware, adminMiddleware, adminProductController.updateProductDetailsById)
+    .delete(authMiddleware, adminMiddleware, adminProductController.deleteProductDetailsById);
+
+/*..........................................
+..........ProductCards Routes................
+..........................................*/
+router.route("/productcards")
+    .get(authMiddleware, adminMiddleware, adminController.getAllProductCards)
+    .post(authMiddleware, adminMiddleware, uploadSingle, adminController.createProductCard);
+
+router.route("/productcards/:id")
+    .get(authMiddleware, adminMiddleware, adminController.getProductCardById)
+    .put(authMiddleware, adminMiddleware, uploadSingle, adminController.updateProductCardById)
+    .delete(authMiddleware, adminMiddleware, adminController.deleteProductCardById);
+
+router
+    .route("/productpage/:id/image")
+    .delete(authMiddleware, adminMiddleware, adminProductController.deleteProductImage);
+    
+
+/*..........................................
+..........ProductInquiry Routes................
+..........................................*/
+router.route("/inquiry")
+    .get(authMiddleware, adminMiddleware, adminProductController.getProductInquiry)
+router.route("/inquiry/:id")
+    .delete(authMiddleware, adminMiddleware, adminProductController.deleteProductInquiry);
+router.route("/inquiry/count")
+    .get(authMiddleware, adminMiddleware, adminProductController.getProductInquiryCount);
+
+
+/*..........................................    
+
+..........Orders Routes................
+..........................................*/
+router.route("/orders/recent-count")
+    .get(authMiddleware, adminMiddleware, adminController.getRecentConfirmedOrdersCount);
+
+router.route("/orders/total-sale")
+    .get(authMiddleware, adminMiddleware, adminController.getTotalSale);
+
+router.put(
+  "/order/:orderId/status",
+  authMiddleware,
+  adminMiddleware,
+  adminController.updateOrderStatus // <-- Use controller function
+);
+
+// User submits question
+router.route("/productpage/:productId/question")
+    .post(authMiddleware, adminProductController.addProductQuestion);
+
+// Admin answers question
+router.route("/productpage/:productId/question/:qaId")
+    .put(authMiddleware, adminMiddleware, adminProductController.answerProductQuestion);
+
+// get pending question
+
+router.route("/productpage/pendingques").get(authMiddleware,adminMiddleware,adminProductController.getPendingQuestion)
+router.route("/productpage/:id")
+    .get(authMiddleware, adminMiddleware, adminProductController.getProductPageById)
+    .put(authMiddleware, adminMiddleware, uploadMultiple, adminProductController.updateProductPageById)
+    .delete(authMiddleware, adminMiddleware, adminProductController.deleteProductPageById);
+
+// ...existing code...
+
+router.route("/cart-notifications")
+    .get(authMiddleware, adminMiddleware, adminController.cartNotification);
+
+// ...existing code...
+
+router.route("/banner").post(authMiddleware,adminMiddleware,uploadSingle, addBanner)
+router.route("/banner").get( getBanners)
+router.route("/banner/:id").put(authMiddleware,adminMiddleware,uploadSingle,updateBanner)
+router.route("/banner/:id").delete(authMiddleware,adminMiddleware, deleteBanner )
+
+router.route("/recentOrders").get(authMiddleware,adminMiddleware,adminController.getRecentOrders)
+module.exports = router;
+
+===== models\productPage-model.js =====
+
+
+const mongoose =
+require("mongoose");
+
+const productPageSchema =
+new mongoose.Schema({
+
+  name: {
+
+    type: String,
+
+    required: [
+      true,
+      "Product name is required",
+    ],
+
+    trim: true,
+
+    minlength: [
+      2,
+      "Product name too short",
+    ],
+
+    maxlength: [
+      200,
+      "Product name too long",
+    ],
+  },
+
+  isPlaceholder: {
+    type: Boolean,
+    default: false,
+  },
+
+  catalogStatus: {
+    type: String,
+    enum: ["draft", "published"],
+    default: "published",
+  },
+
+  estimatedPriceMin: {
+    type: Number,
+    min: 0,
+    default: null,
+  },
+
+  estimatedPriceMax: {
+    type: Number,
+    min: 0,
+    default: null,
+  },
+
+  estimateNote: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+
+  priceVerified: {
+    type: Boolean,
+    default: false,
+  },
+
+  placeholderKey: {
+    type: String,
+    trim: true,
+    default: "",
+  },
+
+  Brand: {
+
+    type: String,
+
+    trim: true,
+
+    default: "",
+  },
+
+  img: {
+
+    type: String,
+
+    required: [
+      true,
+      "Main image is required",
+    ],
+
+    trim: true,
+  },
+
+  images: [
+
+    {
+
+      imageColor: {
+
+        type: String,
+
+        trim: true,
+
+        default: "",
+      },
+
+      imageSet: [
+
+        {
+          type: String,
+
+          trim: true,
+        },
+      ],
+    },
+  ],
+
+  descriptions: {
+
+    type: String,
+
+    trim: true,
+
+    default: "",
+  },
+
+  category: {
+
+    type: String,
+
+    required: [
+      true,
+      "Category is required",
+    ],
+
+    trim: true,
+  },
+
+  subCategory: {
+
+    type: String,
+
+    trim: true,
+
+    default: "",
+  },
+
+  price: {
+
+    type: Number,
+
+    required: [
+      true,
+      "Price is required",
+    ],
+
+    min: [
+      0,
+      "Price cannot be negative",
+    ],
+  },
+
+  priceAlert: {
+
+    type: String,
+
+    trim: true,
+
+    default: "",
+  },
+
+  oldPrice: {
+
+    type: Number,
+
+    min: [
+      0,
+      "Old price cannot be negative",
+    ],
+
+    default: 0,
+  },
+
+  discount: {
+
+    type: Number,
+
+    min: [
+      0,
+      "Discount cannot be negative",
+    ],
+
+    max: [
+      100,
+      "Discount cannot exceed 100%",
+    ],
+
+    default: 0,
+  },
+
+  gst: {
+
+    type: Number,
+
+    min: [
+      0,
+      "GST cannot be negative",
+    ],
+
+    max: [
+      100,
+      "GST cannot exceed 100%",
+    ],
+
+    default: 0,
+  },
+
+  stock: {
+
+    type: Number,
+
+    min: [
+      0,
+      "Stock cannot be negative",
+    ],
+
+    default: 0,
+  },
+
+  stockStatus: {
+
+    type: String,
+
+    enum: [
+
+      "in-stock",
+
+      "out-of-stock",
+
+      "few-left",
+    ],
+
+    default: "in-stock",
+  },
+
+  rating: {
+
+    type: Number,
+
+    min: 0,
+
+    max: 5,
+
+    default: 0,
+  },
+
+  ratingCount: {
+
+    type: Number,
+
+    min: 0,
+
+    default: 0,
+  },
+
+  ratingTotal: {
+
+    type: Number,
+
+    min: 0,
+
+    default: 0,
+  },
+
+  productDescription: {
+
+    type: String,
+
+    trim: true,
+
+    default: "",
+  },
+
+  specifications: [
+
+    {
+
+      key: {
+
+        type: String,
+
+        trim: true,
+
+        default: "",
+      },
+
+      value: {
+
+        type: String,
+
+        trim: true,
+
+        default: "",
+      },
+    },
+  ],
+
+  warranty: [
+
+    {
+
+      key: {
+
+        type: String,
+
+        trim: true,
+
+        default: "",
+      },
+
+      value: {
+
+        type: String,
+
+        trim: true,
+
+        default: "",
+      },
+    },
+  ],
+
+  reviews: [
+
+    {
+
+      userId: {
+
+        type:
+mongoose.Schema.Types.ObjectId,
+
+        ref: "User",
+      },
+
+      rating: {
+
+        type: Number,
+
+        min: 1,
+
+        max: 5,
+
+        required: true,
+      },
+
+      key: {
+
+        type: String,
+
+        trim: true,
+
+        default: "",
+      },
+
+      value: {
+
+        type: String,
+
+        trim: true,
+
+        default: "",
+      },
+    },
+  ],
+
+  quesAns: [
+
+    {
+
+      userId: {
+
+        type:
+mongoose.Schema.Types.ObjectId,
+
+        ref: "User",
+      },
+
+      key: {
+
+        type: String,
+
+        trim: true,
+
+        default: "",
+      },
+
+      value: {
+
+        type: String,
+
+        trim: true,
+
+        default: "",
+      },
+    },
+  ],
+
+  otherinfo: [
+
+    {
+
+      key: {
+
+        type: String,
+
+        trim: true,
+
+        default: "",
+      },
+
+      value: {
+
+        type: String,
+
+        trim: true,
+
+        default: "",
+      },
+    },
+  ],
+
+  offers: [
+
+    {
+
+      key: {
+
+        type: String,
+
+        trim: true,
+
+        default: "",
+      },
+
+      value: {
+
+        type: String,
+
+        trim: true,
+
+        default: "",
+      },
+    },
+  ],
+
+  otherinfoText: {
+
+    type: String,
+
+    trim: true,
+
+    default: "",
+  },
+
+  metaTitle: {
+
+    type: String,
+
+    trim: true,
+
+    maxlength: 60,
+
+    default: "",
+  },
+
+  metaDescription: {
+
+    type: String,
+
+    trim: true,
+
+    maxlength: 160,
+
+    default: "",
+  },
+
+  metaKeywords: {
+
+    type: String,
+
+    trim: true,
+
+    default: "",
+  },
+
+},
+
+{
+  timestamps: true,
+});
+
+module.exports =
+mongoose.model(
+  "ProductPage",
+  productPageSchema
+);

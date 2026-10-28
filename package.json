@@ -1,0 +1,25 @@
+{
+  "dependencies": {
+    "razorpay": "^2.9.8"
+  },
+  "name": "think-botic-web",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/think-botic/Think-Botic-Web.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/think-botic/Think-Botic-Web/issues"
+  },
+  "homepage": "https://github.com/think-botic/Think-Botic-Web#readme"
+}
